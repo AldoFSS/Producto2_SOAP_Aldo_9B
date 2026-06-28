@@ -1,0 +1,22 @@
+# Node
+node_modules/
+
+# PHP
+vendor/
+
+# .NET
+bin/
+obj/
+
+# Java
+*.class
+
+# Rust
+target/
+
+# VS Code
+.vscode/
+
+# Sistema
+.DS_Store
+Thumbs.db
