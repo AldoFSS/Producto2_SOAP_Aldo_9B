@@ -1,6 +1,6 @@
 <?php
 // Inclusión automática de las librerías descargadas por Composer
-require_once "vendor/autoload.php";
+require_once "../vendor/autoload.php";
 use Stichoza\GoogleTranslate\GoogleTranslate;
 
 $wsdl = "https://www.dataaccess.com/webservicesserver/NumberConversion.wso?WSDL";
