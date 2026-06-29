@@ -1,0 +1,30 @@
+{
+  "dependencies": {
+    "@vitalets/google-translate-api": "^9.2.1",
+    "axios": "^1.18.1",
+    "express": "^5.2.1",
+    "google-translate-api-x": "^10.7.3",
+    "number-to-words": "^1.2.4",
+    "soap": "^1.9.3",
+    "written-number": "^0.11.1"
+  },
+  "name": "producto2_dwi",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AldoFSS/Producto2_SOAP_Aldo_9B.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/AldoFSS/Producto2_SOAP_Aldo_9B/issues"
+  },
+  "homepage": "https://github.com/AldoFSS/Producto2_SOAP_Aldo_9B#readme"
+}

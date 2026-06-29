@@ -1,4 +1,3 @@
-// clieSoap2.go - Cliente SOAP + Traducción en Go
 package main
 
 import (
@@ -7,50 +6,87 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
+	googletranslatefree "github.com/bas24/googletranslatefree"
 )
 
-type SoapResponseTwo struct {
-	XMLName xml.Name `xml:"Envelope"`
-	Body    struct {
-		NumberToWordsResponse struct {
-			NumberToWordsResult string `xml:"NumberToWordsResult"`
-		} `xml:"NumberToWordsResponse"`
-	} `xml:"Body"`
+type Envelope struct {
+	Body Body `xml:"Body"`
+}
+
+type Body struct {
+	NumberToWordsResponse NumberToWordsResponse `xml:"NumberToWordsResponse"`
+}
+
+type NumberToWordsResponse struct {
+	NumberToWordsResult string `xml:"NumberToWordsResult"`
+}
+
+func handler(w http.ResponseWriter, r *http.Request) {
+
+	numero := r.URL.Query().Get("n")
+
+	if numero == "" {
+		http.Error(w, "Falta parámetro n", 400)
+		return
+	}
+
+	payload := `<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+<soap:Body>
+<NumberToWords xmlns="http://www.dataaccess.com/webservicesserver/">
+<ubiNum>` + numero + `</ubiNum>
+</NumberToWords>
+</soap:Body>
+</soap:Envelope>`
+
+	req, _ := http.NewRequest(
+		"POST",
+		"https://www.dataaccess.com/webservicesserver/NumberConversion.wso",
+		bytes.NewBuffer([]byte(payload)),
+	)
+
+	req.Header.Set("Content-Type", "text/xml;charset=utf-8")
+	req.Header.Set("SOAPAction", "NumberToWords")
+
+	client := &http.Client{}
+
+	resp, err := client.Do(req)
+
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	var result Envelope
+
+	xml.Unmarshal(body, &result)
+
+	ingles := result.Body.NumberToWordsResponse.NumberToWordsResult
+
+	// Traducción inglés → español
+	espanol, err := googletranslatefree.Translate(
+		ingles,
+		"en",
+		"es",
+	)
+
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	fmt.Fprint(w, espanol)
 }
 
 func main() {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		numero := r.URL.Query().Get("n")
-		if numero == "" { numero = "0" }
 
-		payload := `<?xml version="1.0" encoding="utf-8"?>
-		<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-			<soap:Body>
-				<NumberToWords xmlns="https://www.dataaccess.com/webservicesserver/">
-					<ubiNum>` + numero + `</ubiNum>
-				</NumberToWords>
-			</soap:Body>
-		</soap:Envelope>`
+	http.HandleFunc("/", handler)
 
-		resp, _ := http.Post("https://www.dataaccess.com/webservicesserver/NumberConversion.wso", "text/xml; charset=utf-8", bytes.NewBufferString(payload))
-		defer resp.Body.Close()
+	fmt.Println("Servidor activo puerto 8002")
 
-		body, _ := io.ReadAll(resp.Body)
-		var soapRes SoapResponseTwo
-		xml.Unmarshal(body, &soapRes)
-		textoIngles := strings.TrimSpace(soapRes.Body.NumberToWordsResponse.NumberToWordsResult)
-
-		// Consumo del traductor externo pasando la cadena obtenida
-		urlTrad := fmt.Sprintf("https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=es&dt=t&q=%s", strings.ReplaceAll(textoIngles, " ", "%20"))
-		respTrad, _ := http.Get(urlTrad)
-		defer respTrad.Body.Close()
-		bodyTrad, _ := io.ReadAll(respTrad.Body)
-
-		// Retorna el bloque con la traducción procesada
-		fmt.Fprint(w, string(bodyTrad))
-	})
-
-	fmt.Println("Servidor clieSoap2 (Go) activo en el puerto 8002...")
 	http.ListenAndServe(":8002", nil)
 }

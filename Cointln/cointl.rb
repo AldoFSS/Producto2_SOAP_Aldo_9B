@@ -1,12 +1,28 @@
-# conintl.rb - Localización Nativa en Ruby
-require 'sinatra'
+require 'webrick'
+require 'numbers_and_words'
+require 'i18n'
 
-set :port, 8003
+I18n.available_locales = [:en, :es]
+I18n.locale = :es
 
-get '/' do
-  content_type :text
-  numero = params['n'] || "0"
-  
-  # Conversor algorítmico local
-  numero == "10" ? "diez" : "Procesado nativamente por la gema interna de Ruby"
+server = WEBrick::HTTPServer.new(
+  Port: 8003
+)
+
+server.mount_proc '/' do |req, res|
+
+  numero = (req.query['n'] || "0").to_i
+
+  resultado = numero.to_words(
+    locale: :es
+  )
+
+  res.body = resultado
+
 end
+
+trap("INT") { server.shutdown }
+
+puts "Servidor Convertidor activo puerto 8003"
+
+server.start

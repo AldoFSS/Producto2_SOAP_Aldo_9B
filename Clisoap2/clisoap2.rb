@@ -1,22 +1,44 @@
-# clieSoap2.rb - SOAP + Traducción en Ruby
-require 'sinatra'
-require 'net/http'
-require 'json'
-require 'uri'
+require 'webrick'
+require 'savon'
+require 'google_translator'
 
-set :port, 8002
+server = WEBrick::HTTPServer.new(
+  Port: 8002
+)
 
-get '/' do
-  content_type :text
-  numero = params['n'] || "0"
-  
-  # Simula el consumo SOAP que retorna "ten" y se procesa mediante API de traducción
-  texto_ingles = "ten"
-  url = URI("https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=es&dt=t&q=#{URI.encode_www_form_component(texto_ingles)}")
-  
-  res = Net::HTTP.get(url)
-  datos = JSON.parse(res)
-  texto_espanol = datos[0][0][0] rescue texto_ingles
-  
-  "Ruby Translation Engine: #{texto_ingles} -> Traducido a: #{texto_espanol}"
+server.mount_proc '/' do |req,res|
+
+  numero = req.query['n']
+
+  client = Savon.client(
+    wsdl:"https://www.dataaccess.com/webservicesserver/NumberConversion.wso?WSDL"
+  )
+
+  respuesta = client.call(
+    :number_to_words,
+    message:{ubiNum:numero}
+  )
+
+  ingles = respuesta.body[
+    :number_to_words_response
+  ][
+    :number_to_words_result
+  ]
+
+traductor = GoogleTranslator.new
+
+espanol = traductor.translate(
+    ingles,
+    from: 'en',
+    to: 'es'
+)
+
+  res.body = espanol
+
 end
+
+trap("INT"){server.shutdown}
+
+puts "Servidor Traductor puerto 8002"
+
+server.start

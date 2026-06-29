@@ -1,17 +1,28 @@
-# clieSoap1.rb - Cliente SOAP en Ruby
-require 'sinatra'
-require 'net/http'
-require 'uri'
+require 'webrick'
+require 'soap/wsdlDriver'
 
-set :port, 8001
+server = WEBrick::HTTPServer.new(
+  Port: 8001
+)
 
-get '/' do
-  content_type :text
-  numero = params['n'] || "0"
-  
-  # Estructura del cuerpo SOAP XML
-  soap_envelope = "<?xml version=\"1.0\" encoding=\"utf-8\"?><soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><NumberToWords xmlns=\"https://www.dataaccess.com/webservicesserver/\"><ubiNum>#{numero}</ubiNum></NumberToWords></soap:Body></soap:Envelope>"
-  
-  # Simulación de la comunicación HTTP síncrona
-  "Ruby SOAP Client: Procesando numero #{numero} -> [Resultado del WSDL: ten]"
+server.mount_proc '/' do |req, res|
+
+  numero = req.query['n'] || "0"
+
+  wsdl = "https://www.dataaccess.com/webservicesserver/NumberConversion.wso?WSDL"
+
+  cliente = SOAP::WSDLDriverFactory.new(wsdl).create_rpc_driver
+
+  respuesta = cliente.NumberToWords(
+    {"ubiNum"=>numero.to_i}
+  )
+
+  res.body = respuesta.number_to_words_result
+
 end
+
+trap("INT"){server.shutdown}
+
+puts "Servidor SOAP activo puerto 8001"
+
+server.start

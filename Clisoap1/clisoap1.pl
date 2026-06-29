@@ -1,25 +1,33 @@
-#!/usr/bin/perl
-use strict;
-use warnings;
-use CGI;
+use Mojolicious::Lite;
 use SOAP::Lite;
 
-# Configurar la salida para el navegador web
-my $q = CGI->new;
-print $q->header(-type => 'text/plain', -charset => 'utf-8');
+# Crear cliente SOAP una sola vez
+my $cliente = SOAP::Lite
+->service(
+'http://www.dataaccess.com/webservicesserver/NumberConversion.wso?WSDL'
+);
 
-# Obtener el número desde la URL (ej: ?n=10)
-my $numero = $q->param('n') // 0;
+get '/' => sub {
 
-my $wsdl = 'https://www.dataaccess.com/webservicesserver/NumberConversion.wso?WSDL';
+    my $c = shift;
 
-eval {
-    # Consumo del servicio SOAP
-    my $soap = SOAP::Lite->service($wsdl);
-    my $resultado = $soap->NumberToWords($numero);
-    
-    print "Resultado SOAP (Inglés): " . $resultado;
+    my $numero = $c->param('n') || 0;
+
+    my $resultado = eval {
+        $cliente->NumberToWords($numero);
+    };
+
+    if($@){
+        $c->render(
+            text=>"Error SOAP: $@",
+            status=>500
+        );
+        return;
+    }
+
+    $c->render(
+        text=>$resultado
+    );
 };
-if ($@) {
-    print "Error al conectar con el servicio SOAP: $@";
-}
+
+app->start;
